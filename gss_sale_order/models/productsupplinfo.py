@@ -4,6 +4,7 @@ from odoo.exceptions import ValidationError
  
 class gss_productsupllierinfo(models.Model):
     _name = 'product.supplierinfo.gss'
+    _description = 'CRM ORDER'
     
     
     name = fields.Many2one(
