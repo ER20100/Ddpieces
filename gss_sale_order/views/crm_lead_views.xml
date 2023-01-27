@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <data>
+        <!-- Add you code here -->
+        <record id="crmlead_view_form" model="ir.ui.view">
+            <field name="name">crm.lead.view.form</field>
+            <field name="model">crm.lead</field>
+            <field name="inherit_id" ref="crm.crm_lead_view_form" />
+            <field name="arch" type="xml">
+                <xpath expr="//page[@name='internal_notes']" position="after">
+                    <page name="product_select" string="Fournisseurs"  attrs="{'invisible': [('type', '=', 'lead')]}">
+                        <field name="vendor_ids">
+                            <tree string="Ligne de Commande" editable="bottom">
+                                <field name="name"  context="{'res_partner_search_mode': 'supplier', 'show_vat': True}"/>
+                                <field name="product_tmpl_id" string="Article"/>
+                                <field name="product_uom"/>
+                                <field name="price"/>
+                                <field name="min_qty"/>
+                                <field name="delay"/>
+                                <field name="opportunity_id" invisible="1"/>
+                                <field name="company_id" invisible="1"/>
+                            </tree>
+                        </field>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>
