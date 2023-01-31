@@ -22,20 +22,28 @@ class gss_sale_crmlead(models.Model):
             'company_id': self.company_id.id or self.env.company.id,
             'tag_ids': [(6, 0, self.tag_ids.ids)]
         })
-            
         for line in self.vendor_ids:
-            data = { 'name': line.name.id,
-                        'product_tmpl_id': line.product_tmpl_id.id,
-                        'price': line.price,
-                        'min_qty': line.min_qty,
-                        'delay': line.delay} 
+            samevendors = self.vendor_ids.filtered(lambda s: s.product_tmpl_id == line.product_tmpl_id)  
+            if len(samevendors) > 1:
+                maxvendor = samevendors.sorted(key=lambda r: r.price)[1:]
+                self.vendor_ids = self.vendor_ids - maxvendor
+                  
+        for line in self.vendor_ids:
+            data = {'name': line.name.id,
+                    'product_tmpl_id': line.product_tmpl_id.id,
+                    'price': line.price,
+                    'min_qty': line.min_qty,
+                    'delay': line.delay} 
         
             vendor_id = self.env['product.supplierinfo']._check_vendors(data)  
+            
             if line.product_tmpl_id:
-                product = self.env['product.product'].search([('product_tmpl_id','=',line.product_tmpl_id.id)],limit=1)
-                price = product.lst_price
+                product = self.env['product.product'].search(
+                    [('product_tmpl_id','=',line.product_tmpl_id.id)],
+                    limit=1)
+                price = line.price
                 discount = 0
-                order_lines.create({
+                vals = {
                     'display_type': False,
                     'name': product.name,
                     'state': 'draft',
@@ -44,9 +52,11 @@ class gss_sale_crmlead(models.Model):
                     'product_uom_qty': line.min_qty,
                     'product_id': product.id,
                     'product_uom': line.product_uom.id,
-                    'vendor_id': vendor_id,
                     'order_id': sale_id.id,
-                })
+                    'vendor_id': vendor_id,
+                }
+              
+                order_lines.create(vals)
                 order_lines._compute_tax_id()
                 
         return self.action_view_sale_quotation()
