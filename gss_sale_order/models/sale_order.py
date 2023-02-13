@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api
-
+from odoo import models, fields, api,_
+from odoo.exceptions import UserError
 
 class gss_sale_order(models.Model):
     _inherit= 'sale.order'
@@ -19,7 +19,7 @@ class gss_sale_order(models.Model):
     convert  = fields.Float(
         string="Conversion",
         required=True,
-        default=1.39
+        compute = "_compute_conversion_currency",
     )
     convert_cad  = fields.Float(
         string="Conversion CAD",
@@ -65,9 +65,10 @@ class gss_sale_order(models.Model):
         store=True,
     )
     
-    
-    
-  
+    def update_currency_rates_manually(self):
+        self.ensure_one()
+        if not (self.company_id.update_currency_rates()):
+            raise UserError(_('Unable to connect to the online exchange rate platform. The web service may be temporary down. Please try again in a moment.'))
     
     @api.depends("convert",'transport_usd','transport_cad','package')
     def _compute_convert_cad(self):
@@ -84,6 +85,12 @@ class gss_sale_order(models.Model):
             record.price_ccr_total = record.amount_total / 1.03 if record.cart_credit == 1 else 0
             record.price_profit_total = record.price_ccr_total - record.cost_total if record.cart_credit == 1 else record.amount_total - record.cost_total
             record.total_transport = sum(record.order_line.mapped('price_before_trans'))
+            
+    def _compute_conversion_currency(self):
+        for record in self:
+            usd_obj = self.env.ref('base.USD')
+            record.convert = self.env['res.currency']._get_conversion_rate(usd_obj, record.currency_id, record.company_id, fields.Date.today())
+            
     
 
 class gss_sale_order_line(models.Model):
@@ -91,7 +98,8 @@ class gss_sale_order_line(models.Model):
     
     reference  = fields.Char(related="product_id.default_code", string="No PIECE")
     price_usd = fields.Float(
-        string="Prix USD"
+        string="Prix USD",
+        compute = "_get_conversion_price_usd",
     )
     conversion_line = fields.Float(
         string="Conversion en CAD",
@@ -149,10 +157,10 @@ class gss_sale_order_line(models.Model):
             record.conversion_line =  record.order_id.convert * record.price_usd
     
     
-    @api.depends("product_uom_qty",'product_id.list_price', 'conversion_line')
+    @api.depends("product_uom_qty",'price_unit', 'conversion_line')
     def _compute_price_before_transport(self):
         for record in self:
-            record.price_before_trans =  record.product_uom_qty * (record.product_id.list_price + record.conversion_line)
+            record.price_before_trans =  record.product_uom_qty * (record.price_unit + record.conversion_line)
     
     @api.depends('price_before_trans','order_id.total_transport')
     def _compute_percentage_value(self):
@@ -161,7 +169,7 @@ class gss_sale_order_line(models.Model):
                 record.percentage =  (record.price_before_trans * 100.0)/ record.order_id.total_transport 
     
     
-    @api.depends("percentage",'order_id.convert','order_id.price_douane','order_id.percent_port')
+    @api.depends("percentage",'order_id.convert_cad','order_id.price_douane','order_id.percent_port')
     def _compute_price_transport_douane(self):
         for record in self:
             record.price_transport_douane = (record.percentage/100.0) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
@@ -175,7 +183,7 @@ class gss_sale_order_line(models.Model):
                 record.price_unit_cad = ((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty  if record.product_uom_qty > 0  else 0
     
     
-    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id')
+    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id','price_unit_cad')
     def _compute_amount(self):
         """
         Compute the amounts of the SO line.
@@ -186,7 +194,7 @@ class gss_sale_order_line(models.Model):
             line.update({
                 'price_tax': taxes['total_included'] - taxes['total_excluded'],
                 'price_total': taxes['total_included'],
-                'price_subtotal': taxes['total_excluded'],
+                'price_subtotal': line.price_unit_cad * line.product_uom_qty,
             })
             if self.env.context.get('import_file', False) and not self.env.user.user_has_groups('account.group_account_manager'):
                 line.tax_id.invalidate_cache(['invoice_repartition_line_ids'], [line.tax_id.id])
@@ -206,9 +214,9 @@ class gss_sale_order_line(models.Model):
         values['vendor_id'] = self.vendor_id.id
         return values
     
-    # def _get_supplier_info(self):
-    #     for rec in self:
-    #         if rec.product_template_id.seller_ids:
-    #             rec.vendor_id = rec.product_template_id.seller_ids[0]
-    #         else:
-    #             rec.vendor_id = False
+    @api.depends("price_unit")
+    def _get_conversion_price_usd(self):
+        for record in self:
+            usd_obj = self.env.ref('base.USD')
+            record.price_usd = self.env['res.currency']._convert( record.price_unit, usd_obj, record.company_id, fields.Date.today(), round=True)
+  
