@@ -31,6 +31,7 @@ class gss_productsupllierinfo(models.Model):
     product_tmpl_id = fields.Many2one(
         'product.template', 'Produit', check_company=True,
         index=True, ondelete='cascade')
+    vendor_select = fields.Boolean(string="selectionner le fournisseur a commander")
     
     product_id = fields.Many2one(
         'product.product', 'Article', check_company=True,
@@ -52,11 +53,9 @@ class productsupllierinfo(models.Model):
         ('min_qty','=',data['min_qty']),
         ('delay','=',data['delay']),
         ], limit=1)
-        if len(vendors) == 1:
-            print("111111111111111111111111111111111")
+        if vendors:
             return vendors.id
         else:
-            print("222222222222222222222222222222222")
             return self.create({
                 'name':data['name'],
                 'product_tmpl_id': data['product_tmpl_id'],
