@@ -11,9 +11,11 @@
                     <page name="product_select" string="Fournisseurs"  attrs="{'invisible': [('type', '=', 'lead')]}">
                         <field name="vendor_ids" attrs="{'readonly': [('sale_order_count', '&gt;', 0)]}">
                             <tree string="Ligne de Commande" editable="bottom">
-                                <field name="name"  context="{'res_partner_search_mode': 'supplier', 'show_vat': True}"/>
                                 <field name="product_tmpl_id" string="Article"/>
+                                <field name="reference"/>
+                                <field name="name"  context="{'res_partner_search_mode': 'supplier', 'show_vat': True}"/>
                                 <field name="product_uom"/>
+                                <field name="price_usd"/>
                                 <field name="price"/>
                                 <field name="min_qty"/>
                                 <field name="delay"/>
