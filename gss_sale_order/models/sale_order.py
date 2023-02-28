@@ -19,6 +19,7 @@ class gss_sale_order(models.Model):
     convert  = fields.Float(
         string="Conversion",
         required=True,
+        default=1.33
     )
     convert_cad  = fields.Float(
         string="Conversion CAD",
