@@ -16,7 +16,7 @@
                   </group>
                   <group>
                         <field name="convert"/>
-                        <button name="update_currency_rates_manually" type="object" class="btn-link" string="Mettre a jour"/>
+                        <!-- <button name="update_currency_rates_manually" type="object" class="btn-link" string="Mettre a jour"/> -->
                 </group>
                   <group name="douane_details" string="Douanes">
                     <field name="price_douane"/>

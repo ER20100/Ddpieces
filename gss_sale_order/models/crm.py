@@ -45,6 +45,7 @@ class gss_sale_crmlead(models.Model):
                     'display_type': False,
                     'name': product.name,
                     'state': 'draft',
+                    'price_usd': line.price_usd,
                     'price_unit': price,
                     'discount': discount,
                     'product_uom_qty': line.min_qty,

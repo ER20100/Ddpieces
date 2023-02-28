@@ -25,6 +25,9 @@ class gss_productsupllierinfo(models.Model):
     price = fields.Float(
         'PU', default=0.0, digits='Product Price',
         required=True, help="The price to purchase a product")
+    price_usd = fields.Float(
+        'PU USD', default=0.0, digits='Product Price USD',
+        required=True, help="The price to purchase a product")
     company_id = fields.Many2one(
         'res.company', 'Entreprise',
         default=lambda self: self.env.company.id, index=1)
@@ -41,6 +44,7 @@ class gss_productsupllierinfo(models.Model):
     delay = fields.Integer(
         'Delai de livraison', default=1, required=True,
         help="Lead time in days between the confirmation of the purchase order and the receipt of the products in your warehouse. Used by the scheduler for automatic computation of the purchase order planning.")
+    reference = fields.Char(string='Reference interne', related='product_tmpl_id.default_code')
     
 class productsupllierinfo(models.Model):
     _inherit = 'product.supplierinfo'

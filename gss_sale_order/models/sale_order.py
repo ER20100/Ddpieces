@@ -19,7 +19,7 @@ class gss_sale_order(models.Model):
     convert  = fields.Float(
         string="Conversion",
         required=True,
-        compute = "_compute_conversion_currency",
+        default=1.33
     )
     convert_cad  = fields.Float(
         string="Conversion CAD",
@@ -78,18 +78,18 @@ class gss_sale_order(models.Model):
     @api.depends("order_line",'cart_credit','amount_total')
     def _compute_total_cost(self):
         for record in self:
-            amount = sum(line.price_unit * line.product_uom_qty for line in record.order_line)
-            if amount > 0.0:
+            amount_US = sum(line.price_usd * line.product_uom_qty for line in record.order_line)
+            if amount_US > 0.0:
                 record.percent_port = (sum(record.order_line.mapped('price_before_trans')) * 6.0)/100.0
             record.cost_total = sum(line.price_before_trans + line.price_transport_douane for line in record.order_line)
             record.price_ccr_total = record.amount_total / 1.03 if record.cart_credit == 1 else 0
             record.price_profit_total = record.price_ccr_total - record.cost_total if record.cart_credit == 1 else record.amount_total - record.cost_total
             record.total_transport = sum(record.order_line.mapped('price_before_trans'))
             
-    def _compute_conversion_currency(self):
-        for record in self:
-            usd_obj = self.env.ref('base.USD')
-            record.convert = self.env['res.currency']._get_conversion_rate(usd_obj, record.currency_id, record.company_id, fields.Date.today())
+    # def _compute_conversion_currency(self):
+    #     for record in self:
+    #         usd_obj = self.env.ref('base.USD')
+    #         record.convert = self.env['res.currency']._get_conversion_rate(usd_obj, record.currency_id, record.company_id, fields.Date.today())
             
     
 
@@ -99,7 +99,6 @@ class gss_sale_order_line(models.Model):
     reference  = fields.Char(related="product_id.default_code", string="No PIECE")
     price_usd = fields.Float(
         string="Prix USD",
-        compute = "_get_conversion_price_usd",
     )
     conversion_line = fields.Float(
         string="Conversion en CAD",
@@ -214,9 +213,9 @@ class gss_sale_order_line(models.Model):
         values['vendor_id'] = self.vendor_id.id
         return values
     
-    @api.depends("price_unit")
-    def _get_conversion_price_usd(self):
-        for record in self:
-            usd_obj = self.env.ref('base.USD')
-            record.price_usd = self.env['res.currency']._convert( record.price_unit, usd_obj, record.company_id, fields.Date.today(), round=True)
+    # @api.depends("price_unit")
+    # def _get_conversion_price_usd(self):
+    #     for record in self:
+    #         usd_obj = self.env.ref('base.USD')
+    #         record.price_usd = self.env['res.currency']._convert( record.price_unit, usd_obj, record.company_id, fields.Date.today(), round=True)
   
