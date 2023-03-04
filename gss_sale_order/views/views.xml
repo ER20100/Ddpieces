@@ -26,9 +26,9 @@
               </group>
         </xpath>
         <xpath expr="//field[@name='tax_totals_json']" position="before">
-          <field name="cart_credit"/>
+          <!-- <field name="cart_credit"/> -->
           <field name="cost_total" widget="monetary"/>
-          <field name="price_ccr_total" widget="monetary"/>
+        
           <field name="price_profit_total" widget="monetary"/>
         </xpath>
         <xpath expr="//field[@name='order_line']/tree" position="replace">
