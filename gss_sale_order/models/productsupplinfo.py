@@ -23,7 +23,8 @@ class gss_productsupllierinfo(models.Model):
         'Quantite', default=0.0, required=True, digits="Product Unit Of Measure",
         help="The quantity to purchase from this vendor to benefit from the price, expressed in the vendor Product Unit of Measure if not any, in the default unit of measure of the product otherwise.")
     price = fields.Float(
-        'PU', default=0.0, digits='Product Price',
+        
+        'PU CAD', default=0.0, digits='Product Price',
         required=True, help="The price to purchase a product")
     price_usd = fields.Float(
         'PU USD', default=0.0, digits='Product Price USD',
