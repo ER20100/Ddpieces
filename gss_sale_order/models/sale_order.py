@@ -2,6 +2,7 @@
 
 from odoo import models, fields, api,_
 from odoo.exceptions import UserError
+import json
 
 class gss_sale_order(models.Model):
     _inherit= 'sale.order'
@@ -91,7 +92,20 @@ class gss_sale_order(models.Model):
         for rec in self:
             rec.price_profit_total = rec.amount_untaxed - rec.cost_total
             
-    
+            
+    @api.depends('order_line.tax_id', 'order_line.price_unit_cad', 'amount_total', 'amount_untaxed')
+    def _compute_tax_totals_json(self):
+        def compute_taxes(order_line):
+            price = order_line.price_unit_cad * (1 - (order_line.discount or 0.0) / 100.0)
+            order = order_line.order_id
+            return order_line.tax_id._origin.compute_all(price, order.currency_id, order_line.product_uom_qty, product=order_line.product_id, partner=order.partner_shipping_id)
+
+        account_move = self.env['account.move']
+        for order in self:
+            tax_lines_data = account_move._prepare_tax_lines_data_for_totals_from_object(order.order_line, compute_taxes)
+            tax_totals = account_move._get_tax_totals(order.partner_id, tax_lines_data, order.amount_total, order.amount_untaxed, order.currency_id)
+            order.tax_totals_json = json.dumps(tax_totals)
+           
 
 class gss_sale_order_line(models.Model):
     _inherit = 'sale.order.line'
@@ -209,6 +223,8 @@ class gss_sale_order_line(models.Model):
         values = super(gss_sale_order_line, self)._prepare_procurement_values(group_id)
         values['vendor_id'] = self.vendor_id.id
         return values
+
+    
     
    
   
