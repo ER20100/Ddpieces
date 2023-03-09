@@ -188,8 +188,8 @@ class gss_sale_order_line(models.Model):
     def _compute_price_unit(self):
         for record in self:
             if record.order_id.cart_credit == 1 :
-                record.price_unit_cad = (((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty) * 1.03 if record.product_uom_qty > 0  else 0
-            else:
+            #     record.price_unit_cad = (((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty) * 1.03 if record.product_uom_qty > 0  else 0
+            # else:
                 record.price_unit_cad = ((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty  if record.product_uom_qty > 0  else 0
     
     
