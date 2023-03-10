@@ -72,17 +72,18 @@ class gss_sale_order(models.Model):
         for record in self:
             record.convert_cad =  ((record.convert * record.transport_usd) + record.transport_cad + record.package) * 1.2
     
-    @api.depends('order_line.price_subtotal')
+    @api.depends('order_line.price_subtotal','order_line.price_transport_douane')
     def _compute_total_cost(self):
         for order in self:
-            amount_US = amount_transp = cost_total = 0.0
+            amount_US = amount_transp = cost_total = cost_total1 = 0.0
             for line in order.order_line:
                 amount_US += line.price_usd * line.product_uom_qty 
                 amount_transp += line.price_before_trans
-                cost_total += line.price_before_trans + line.price_transport_douane
-           
+                cost_total1 += line._compute_price_transport_douane()
+                cost_total += line.price_before_trans 
+            
             order.update({
-                'cost_total':cost_total,
+                'cost_total':cost_total + cost_total1,
                 'total_transport':amount_transp,
                 'percent_port':(amount_transp* 6.0)/100.0 if amount_US > 0.0 else 0.0 ,
             })
@@ -183,6 +184,8 @@ class gss_sale_order_line(models.Model):
     def _compute_price_transport_douane(self):
         for record in self:
             record.price_transport_douane = (record.percentage/100.0) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
+        return (record.percentage/100.0) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
+           
     
     @api.depends("product_uom_qty",'profit','price_transport_douane','price_before_trans','order_id.cart_credit')
     def _compute_price_unit(self):
