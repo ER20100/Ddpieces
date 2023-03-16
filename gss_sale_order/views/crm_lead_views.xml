@@ -13,9 +13,10 @@
                             <tree string="Ligne de Commande" editable="bottom">
                                 <field name="product_tmpl_id" string="N° Piece/Article"/>
                                 <field name="reference" string="N° Piece"/>
+                                <field name="description"/>
                                 <field name="name"  context="{'res_partner_search_mode': 'supplier', 'show_vat': True}"/>
-                                <field name="product_uom"/>
                                 <field name="min_qty"/>
+                                <field name="virtual_available" readonly="1"/>
                                 <field name="price_usd"/>
                                 <field name="price"/>
                                 <field name="delay"/>
