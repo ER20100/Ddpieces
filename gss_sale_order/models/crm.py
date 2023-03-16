@@ -22,7 +22,6 @@ class gss_sale_crmlead(models.Model):
             'company_id': self.company_id.id or self.env.company.id,
             'tag_ids': [(6, 0, self.tag_ids.ids)]
         })
-        valist =[]
         for line in self.vendor_ids:
             data = {'name': line.name.id,
                     'product_tmpl_id': line.product_tmpl_id.id,
@@ -41,7 +40,7 @@ class gss_sale_crmlead(models.Model):
                   
                 price = line.price
                 discount = 0
-                valist.append({
+                vals ={
                     'display_type': False,
                     'name': product.name,
                     'state': 'draft',
@@ -53,10 +52,10 @@ class gss_sale_crmlead(models.Model):
                     'product_uom': line.product_uom.id,
                     'order_id': sale_id.id,
                     'vendor_id': vendor.id,
-                })
+                }
               
-            order_lines.create(valist)
-            order_lines._compute_tax_id()
+                order_lines.create(vals)
+                order_lines._compute_tax_id()
                 
         return self.action_view_sale_quotation()
         
