@@ -22,7 +22,6 @@ class gss_sale_crmlead(models.Model):
             'company_id': self.company_id.id or self.env.company.id,
             'tag_ids': [(6, 0, self.tag_ids.ids)]
         })
-       
         for line in self.vendor_ids:
             data = {'name': line.name.id,
                     'product_tmpl_id': line.product_tmpl_id.id,
@@ -41,7 +40,7 @@ class gss_sale_crmlead(models.Model):
                   
                 price = line.price
                 discount = 0
-                vals = {
+                vals ={
                     'display_type': False,
                     'name': product.name,
                     'state': 'draft',

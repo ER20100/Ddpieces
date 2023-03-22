@@ -2,6 +2,7 @@
 
 from odoo import models, fields, api,_
 from odoo.exceptions import UserError
+import json
 
 class gss_sale_order(models.Model):
     _inherit= 'sale.order'
@@ -37,7 +38,7 @@ class gss_sale_order(models.Model):
     
     cart_credit =  fields.Integer(
         string="Carte Credit",
-        default= 0
+        default= 1
     )
     
     cost_total =  fields.Monetary(
@@ -47,15 +48,15 @@ class gss_sale_order(models.Model):
     )
     
     
-    price_ccr_total =  fields.Monetary(
-        string="Prix de vente CC",
-        compute = "_compute_total_cost",
-        store=True,
-    )
+    # price_ccr_total =  fields.Monetary(
+    #     string="Prix de vente CC",
+    #     compute = "_compute_total_cost",
+    #     store=True,
+    # )
     
     price_profit_total =  fields.Monetary(
         string="Profit Total",
-        compute = "_compute_total_cost",
+        compute = "_compute_price_total",
         store=True,
     )
     
@@ -65,33 +66,47 @@ class gss_sale_order(models.Model):
         store=True,
     )
     
-    def update_currency_rates_manually(self):
-        self.ensure_one()
-        if not (self.company_id.update_currency_rates()):
-            raise UserError(_('Unable to connect to the online exchange rate platform. The web service may be temporary down. Please try again in a moment.'))
     
     @api.depends("convert",'transport_usd','transport_cad','package')
     def _compute_convert_cad(self):
         for record in self:
             record.convert_cad =  ((record.convert * record.transport_usd) + record.transport_cad + record.package) * 1.2
     
-    @api.depends("order_line",'cart_credit','amount_total')
+    @api.depends('order_line.price_subtotal','order_line.price_transport_douane')
     def _compute_total_cost(self):
-        for record in self:
-            amount_US = sum(line.price_usd * line.product_uom_qty for line in record.order_line)
-            if amount_US > 0.0:
-                record.percent_port = (sum(record.order_line.mapped('price_before_trans')) * 6.0)/100.0
-            record.cost_total = sum(line.price_before_trans + line.price_transport_douane for line in record.order_line)
-            record.price_ccr_total = record.amount_total / 1.03 if record.cart_credit == 1 else 0
-            record.price_profit_total = record.price_ccr_total - record.cost_total if record.cart_credit == 1 else record.amount_total - record.cost_total
-            record.total_transport = sum(record.order_line.mapped('price_before_trans'))
+        for order in self:
+            amount_US = amount_transp = cost_total = cost_total1 = 0.0
+            for line in order.order_line:
+                amount_US += line.price_usd * line.product_uom_qty 
+                amount_transp += line.price_before_trans
+                cost_total1 += line._compute_price_transport_douane()
+                cost_total += line.price_before_trans 
             
-    # def _compute_conversion_currency(self):
-    #     for record in self:
-    #         usd_obj = self.env.ref('base.USD')
-    #         record.convert = self.env['res.currency']._get_conversion_rate(usd_obj, record.currency_id, record.company_id, fields.Date.today())
-            
+            order.update({
+                'cost_total':cost_total + cost_total1,
+                'total_transport':amount_transp,
+                'percent_port':(amount_transp* 6.0)/100.0 if amount_US > 0.0 else 0.0 ,
+            })
     
+    @api.depends('cost_total','amount_untaxed')
+    def _compute_price_total(self):  
+        for rec in self:
+            rec.price_profit_total = rec.amount_untaxed - rec.cost_total
+            
+            
+    @api.depends('order_line.tax_id', 'order_line.price_unit_cad', 'amount_total', 'amount_untaxed')
+    def _compute_tax_totals_json(self):
+        def compute_taxes(order_line):
+            price = order_line.price_unit_cad * (1 - (order_line.discount or 0.0) / 100.0)
+            order = order_line.order_id
+            return order_line.tax_id._origin.compute_all(price, order.currency_id, order_line.product_uom_qty, product=order_line.product_id, partner=order.partner_shipping_id)
+
+        account_move = self.env['account.move']
+        for order in self:
+            tax_lines_data = account_move._prepare_tax_lines_data_for_totals_from_object(order.order_line, compute_taxes)
+            tax_totals = account_move._get_tax_totals(order.partner_id, tax_lines_data, order.amount_total, order.amount_untaxed, order.currency_id)
+            order.tax_totals_json = json.dumps(tax_totals)
+           
 
 class gss_sale_order_line(models.Model):
     _inherit = 'sale.order.line'
@@ -147,9 +162,6 @@ class gss_sale_order_line(models.Model):
         'product.supplierinfo',
         string='Fournisseur')
     
-    # partner_id = fields.Many2one('res.partner',
-    #                               string='Fournisseur' )
-    
     @api.depends("order_id.convert",'price_usd')
     def _compute_conversion(self):
         for record in self:
@@ -172,13 +184,15 @@ class gss_sale_order_line(models.Model):
     def _compute_price_transport_douane(self):
         for record in self:
             record.price_transport_douane = (record.percentage/100.0) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
+        return (record.percentage/100.0) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
+           
     
     @api.depends("product_uom_qty",'profit','price_transport_douane','price_before_trans','order_id.cart_credit')
     def _compute_price_unit(self):
         for record in self:
             if record.order_id.cart_credit == 1 :
-                record.price_unit_cad = (((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty) * 1.03 if record.product_uom_qty > 0  else 0
-            else:
+            #     record.price_unit_cad = (((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty) * 1.03 if record.product_uom_qty > 0  else 0
+            # else:
                 record.price_unit_cad = ((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty  if record.product_uom_qty > 0  else 0
     
     
@@ -212,10 +226,8 @@ class gss_sale_order_line(models.Model):
         values = super(gss_sale_order_line, self)._prepare_procurement_values(group_id)
         values['vendor_id'] = self.vendor_id.id
         return values
+
     
-    # @api.depends("price_unit")
-    # def _get_conversion_price_usd(self):
-    #     for record in self:
-    #         usd_obj = self.env.ref('base.USD')
-    #         record.price_usd = self.env['res.currency']._convert( record.price_unit, usd_obj, record.company_id, fields.Date.today(), round=True)
+    
+   
   

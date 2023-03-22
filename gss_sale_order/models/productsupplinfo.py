@@ -23,7 +23,8 @@ class gss_productsupllierinfo(models.Model):
         'Quantite', default=0.0, required=True, digits="Product Unit Of Measure",
         help="The quantity to purchase from this vendor to benefit from the price, expressed in the vendor Product Unit of Measure if not any, in the default unit of measure of the product otherwise.")
     price = fields.Float(
-        'PU', default=0.0, digits='Product Price',
+        
+        'PU CAD', default=0.0, digits='Product Price',
         required=True, help="The price to purchase a product")
     price_usd = fields.Float(
         'PU USD', default=0.0, digits='Product Price USD',
@@ -35,7 +36,6 @@ class gss_productsupllierinfo(models.Model):
         'product.template', 'Produit', check_company=True,
         index=True, ondelete='cascade')
     vendor_select = fields.Boolean(string="selectionner le fournisseur a commander")
-    
     product_id = fields.Many2one(
         'product.product', 'Article', check_company=True,
         domain="[('sale_ok', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id)]",
@@ -45,6 +45,26 @@ class gss_productsupllierinfo(models.Model):
         'Delai de livraison', default=1, required=True,
         help="Lead time in days between the confirmation of the purchase order and the receipt of the products in your warehouse. Used by the scheduler for automatic computation of the purchase order planning.")
     reference = fields.Char(string='Reference interne', related='product_tmpl_id.default_code')
+    virtual_available  = fields.Float( string='Quantite Disponible',compute="compute_product_id_quantity_available",store=True)
+    description = fields.Char(string='description', related='product_tmpl_id.name')
+    
+    @api.depends('line_ids')
+    def _compute_total(self):
+        for order_doc in self:
+            amount_total = sum(order_doc.line_ids.mapped('price_total'))
+            order_doc.amount_total = amount_total
+            
+    @api.depends('product_tmpl_id')
+    def compute_product_id_quantity_available(self):
+        for record in self:
+            product= record.product_tmpl_id
+            if product:
+                res = product._compute_quantities_dict()
+                record.virtual_available = res[product.id]['qty_available']
+            else:
+                record.virtual_available = 0.0
+    
+    
     
 class productsupllierinfo(models.Model):
     _inherit = 'product.supplierinfo'
