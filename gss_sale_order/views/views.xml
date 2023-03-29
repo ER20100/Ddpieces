@@ -22,7 +22,6 @@
                     <field name="price_douane"/>
                     <field name="percent_port"/>
                   </group>
-                <field name="total_transport"/>
               </group>
         </xpath>
         <xpath expr="//field[@name='tax_totals_json']" position="before">
