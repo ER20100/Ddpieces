@@ -6,11 +6,14 @@ class gss_productsupllierinfo(models.Model):
     _name = 'product.supplierinfo.gss'
     _description = 'CRM ORDER'
     
+    def _default_get_vendor(self):
+        return self.env.ref("gss_sale_order.avenir_vendor")
     
     name = fields.Many2one(
         'res.partner', 'Fournisseur',
         ondelete='cascade', required=True,
-        help="Vendor of this product", check_company=True)
+        help="Vendor of this product", check_company=True,
+        default=_default_get_vendor)
     product_uom = fields.Many2one(
         'uom.uom', 'Unite de Mesure',
         related='product_tmpl_id.uom_id',
