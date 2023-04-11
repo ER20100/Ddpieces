@@ -131,7 +131,9 @@ class gss_sale_order_line(models.Model):
     percentage = fields.Float(
         string="%",
         compute = "_compute_percentage_value",
-        store= True
+        inverse = "_set_percentage",
+        tracking=True,
+        store=True
     )
     
     price_transport_douane = fields.Monetary(
@@ -173,11 +175,22 @@ class gss_sale_order_line(models.Model):
         for record in self:
             record.price_before_trans =  record.product_uom_qty * (record.price_unit + record.conversion_line)
     
-    @api.depends('price_before_trans','order_id.total_transport')
+    # @api.depends('price_before_trans','order_id.total_transport')
     def _compute_percentage_value(self):
         for record in self:
             if record.order_id.total_transport != 0.0:
                 record.percentage =  (record.price_before_trans * 100.0)/ record.order_id.total_transport 
+    
+    
+   
+    def _set_percentage(self):
+        for record in self:
+            if record.percentage:
+                record.price_before_trans = (record.order_id.total_transport * record.percentage)/100.0
+                
+    # @api.onchange('percentage')
+    # def onchange_percentage(self):
+    #     self.price_before_trans =  (self.order_id.total_transport * self.percentage)/100.0
     
     
     @api.depends("percentage",'order_id.convert_cad','order_id.price_douane','order_id.percent_port')
