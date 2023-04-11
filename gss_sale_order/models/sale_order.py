@@ -134,7 +134,6 @@ class gss_sale_order_line(models.Model):
         string="%",
         compute = "_compute_percentage_value",
         inverse = "_set_percentage",
-        tracking=True,
         store=True
     )
     
