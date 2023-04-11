@@ -17,11 +17,11 @@ class gss_sale_order(models.Model):
         string="Emballage"
     )
     
-    convert  = fields.Float(
-        string="Conversion",
-        required=True,
-        default=1.33
-    )
+    # convert  = fields.Float(
+    #     string="Conversion",
+    #     required=True,
+    #     default=1.33
+    # )
     convert_cad  = fields.Float(
         string="Conversion CAD",
         compute = "_compute_convert_cad",
@@ -67,10 +67,12 @@ class gss_sale_order(models.Model):
     )
     
     
-    @api.depends("convert",'transport_usd','transport_cad','package')
+    @api.depends('transport_usd','transport_cad','package')
     def _compute_convert_cad(self):
+        convert = self.env['ir.config_parameter'].sudo(). \
+            get_param("gss_sale_order.convert", default=1.33)
         for record in self:
-            record.convert_cad =  ((record.convert * record.transport_usd) + record.transport_cad + record.package) * 1.2
+            record.convert_cad =  ((float(convert) * record.transport_usd) + record.transport_cad + record.package) * 1.2
     
     @api.depends('order_line.price_subtotal','order_line.price_transport_douane')
     def _compute_total_cost(self):
@@ -164,10 +166,12 @@ class gss_sale_order_line(models.Model):
         'product.supplierinfo',
         string='Fournisseur')
     
-    @api.depends("order_id.convert",'price_usd')
+    @api.depends('price_usd')
     def _compute_conversion(self):
+        convert = self.env['ir.config_parameter'].sudo(). \
+            get_param("gss_sale_order.convert", default=1.33)
         for record in self:
-            record.conversion_line =  record.order_id.convert * record.price_usd
+            record.conversion_line =  float(convert) * record.price_usd
     
     
     @api.depends("product_uom_qty",'price_unit', 'conversion_line')
