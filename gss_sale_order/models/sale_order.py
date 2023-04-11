@@ -17,11 +17,11 @@ class gss_sale_order(models.Model):
         string="Emballage"
     )
     
-    convert  = fields.Float(
-        string="Conversion",
-        required=True,
-        default=1.33
-    )
+    # convert  = fields.Float(
+    #     string="Conversion",
+    #     required=True,
+    #     default=1.33
+    # )
     convert_cad  = fields.Float(
         string="Conversion CAD",
         compute = "_compute_convert_cad",
@@ -67,10 +67,12 @@ class gss_sale_order(models.Model):
     )
     
     
-    @api.depends("convert",'transport_usd','transport_cad','package')
+    @api.depends('transport_usd','transport_cad','package')
     def _compute_convert_cad(self):
+        convert = self.env['ir.config_parameter'].sudo(). \
+            get_param("gss_sale_order.convert", default=1.33)
         for record in self:
-            record.convert_cad =  ((record.convert * record.transport_usd) + record.transport_cad + record.package) * 1.2
+            record.convert_cad =  ((float(convert) * record.transport_usd) + record.transport_cad + record.package) * 1.2
     
     @api.depends('order_line.price_subtotal','order_line.price_transport_douane')
     def _compute_total_cost(self):
@@ -131,7 +133,8 @@ class gss_sale_order_line(models.Model):
     percentage = fields.Float(
         string="%",
         compute = "_compute_percentage_value",
-        store= True
+        inverse = "_set_percentage",
+        store=True
     )
     
     price_transport_douane = fields.Monetary(
@@ -162,10 +165,12 @@ class gss_sale_order_line(models.Model):
         'product.supplierinfo',
         string='Fournisseur')
     
-    @api.depends("order_id.convert",'price_usd')
+    @api.depends('price_usd')
     def _compute_conversion(self):
+        convert = self.env['ir.config_parameter'].sudo(). \
+            get_param("gss_sale_order.convert", default=1.33)
         for record in self:
-            record.conversion_line =  record.order_id.convert * record.price_usd
+            record.conversion_line =  float(convert) * record.price_usd
     
     
     @api.depends("product_uom_qty",'price_unit', 'conversion_line')
@@ -173,11 +178,22 @@ class gss_sale_order_line(models.Model):
         for record in self:
             record.price_before_trans =  record.product_uom_qty * (record.price_unit + record.conversion_line)
     
-    @api.depends('price_before_trans','order_id.total_transport')
+    # @api.depends('price_before_trans','order_id.total_transport')
     def _compute_percentage_value(self):
         for record in self:
             if record.order_id.total_transport != 0.0:
                 record.percentage =  (record.price_before_trans * 100.0)/ record.order_id.total_transport 
+    
+    
+   
+    def _set_percentage(self):
+        for record in self:
+            if record.percentage:
+                record.price_before_trans = (record.order_id.total_transport * record.percentage)/100.0
+                
+    # @api.onchange('percentage')
+    # def onchange_percentage(self):
+    #     self.price_before_trans =  (self.order_id.total_transport * self.percentage)/100.0
     
     
     @api.depends("percentage",'order_id.convert_cad','order_id.price_douane','order_id.percent_port')
