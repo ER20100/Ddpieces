@@ -153,7 +153,7 @@
                         attrs="{'readonly': [('qty_invoiced', '&gt;', 0)]}"
                     />
                     <field
-                        name="price_unit"
+                        name="price_unit_cad"
                         attrs="{'readonly': [('qty_invoiced', '&gt;', 0)]}"
                     />
                     <field
@@ -165,7 +165,7 @@
                     <field name="price_transport_douane"/>
                     <field name="costline_transport_douane"/>
                     <field name="profit"/>
-                    <field name="price_unit_cad"/>
+                    <field name="price_unit" string="Prix Vendant Unitaire"/>
                     <field
                         name="tax_id"
                         widget="many2many_tags"
