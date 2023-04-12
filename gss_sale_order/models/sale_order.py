@@ -96,10 +96,10 @@ class gss_sale_order(models.Model):
             rec.price_profit_total = rec.amount_untaxed - rec.cost_total
             
             
-    @api.depends('order_line.tax_id', 'order_line.price_unit_cad', 'amount_total', 'amount_untaxed')
+    @api.depends('order_line.tax_id', 'order_line.price_unit', 'amount_total', 'amount_untaxed')
     def _compute_tax_totals_json(self):
         def compute_taxes(order_line):
-            price = order_line.price_unit_cad * (1 - (order_line.discount or 0.0) / 100.0)
+            price = order_line.price_unit * (1 - (order_line.discount or 0.0) / 100.0)
             order = order_line.order_id
             return order_line.tax_id._origin.compute_all(price, order.currency_id, order_line.product_uom_qty, product=order_line.product_id, partner=order.partner_shipping_id)
 
@@ -122,7 +122,7 @@ class gss_sale_order_line(models.Model):
         compute = "_compute_conversion",
         store= True
     )
-    price_unit = fields.Float('Prix CAD', required=True, digits='Product Price', default=0.0)
+    price_unit_cad = fields.Float('Prix CAD', required=True, digits='Product Price', default=0.0)
 
     price_before_trans =  fields.Monetary(
         string="Total avant Transport",
@@ -132,9 +132,7 @@ class gss_sale_order_line(models.Model):
     
     percentage = fields.Float(
         string="%",
-        compute = "_compute_percentage_value",
-        inverse = "_set_percentage",
-        store=True
+        default=100.0
     )
     
     price_transport_douane = fields.Monetary(
@@ -154,12 +152,13 @@ class gss_sale_order_line(models.Model):
         default=155.0
     )
     
-    price_unit_cad = fields.Float(
-        'Prix Vendant Unitaire',
-        readonly=True,
-        digits='Product Price', 
-        compute = "_compute_price_unit",
-        default=0.0)
+    # price_unit_cad = fields.Float(
+    #     'Prix Vendant Unitaire',
+    #     readonly=True,
+    #     digits='Product Price', 
+    #     compute = "_compute_price_unit",
+    #     default=0.0)
+    price_unit = fields.Float('Unit Price', digits='Product Price', compute = "_compute_price_unit",  default=0.0)
     
     vendor_id = fields.Many2one(
         'product.supplierinfo',
@@ -173,27 +172,32 @@ class gss_sale_order_line(models.Model):
             record.conversion_line =  float(convert) * record.price_usd
     
     
-    @api.depends("product_uom_qty",'price_unit', 'conversion_line')
+    @api.depends("product_uom_qty",'price_unit_cad', 'conversion_line')
     def _compute_price_before_transport(self):
         for record in self:
-            record.price_before_trans =  record.product_uom_qty * (record.price_unit + record.conversion_line)
+            record.price_before_trans =  record.product_uom_qty * (record.price_unit_cad + record.conversion_line)
     
     # @api.depends('price_before_trans','order_id.total_transport')
-    def _compute_percentage_value(self):
-        for record in self:
-            if record.order_id.total_transport != 0.0:
-                record.percentage =  (record.price_before_trans * 100.0)/ record.order_id.total_transport 
+    # def _get_percentage(self):
+    #     for record in self:
+    #         if record.order_id.total_transport != 0.0:
+    #             record.percentage =  (record.price_before_trans * 100.0)/ record.order_id.total_transport
+    #         else:
+    #             record.percentage = 0.0
     
     
    
-    def _set_percentage(self):
-        for record in self:
-            if record.percentage:
-                record.price_before_trans = (record.order_id.total_transport * record.percentage)/100.0
+    # def _inverse_percentage(self):
+    #     pass
+        # for record in self:
+        #     if record.percentage:
+        #         record.price_before_trans = (record.order_id.total_transport * record.percentage)/100.0
                 
-    # @api.onchange('percentage')
-    # def onchange_percentage(self):
-    #     self.price_before_trans =  (self.order_id.total_transport * self.percentage)/100.0
+  
+    # def _set_percentage(self):
+    #     for record in self:
+    #         value =  (record.order_id.total_transport * record.percentage)/100.0
+    #         record.write({'price_before_trans' : value}) 
     
     
     @api.depends("percentage",'order_id.convert_cad','order_id.price_douane','order_id.percent_port')
@@ -207,23 +211,21 @@ class gss_sale_order_line(models.Model):
     def _compute_price_unit(self):
         for record in self:
             if record.order_id.cart_credit == 1 :
-            #     record.price_unit_cad = (((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty) * 1.03 if record.product_uom_qty > 0  else 0
-            # else:
-                record.price_unit_cad = ((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty  if record.product_uom_qty > 0  else 0
+                record.price_unit = ((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane )/ record.product_uom_qty  if record.product_uom_qty > 0  else 0
     
     
-    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id','price_unit_cad')
+    @api.depends('product_uom_qty', 'discount', 'price_unit', 'tax_id','price_unit')
     def _compute_amount(self):
         """
         Compute the amounts of the SO line.
         """
         for line in self:
-            price = line.price_unit_cad * (1 - (line.discount or 0.0) / 100.0)
+            price = line.price_unit * (1 - (line.discount or 0.0) / 100.0)
             taxes = line.tax_id.compute_all(price, line.order_id.currency_id, line.product_uom_qty, product=line.product_id, partner=line.order_id.partner_shipping_id)
             line.update({
                 'price_tax': taxes['total_included'] - taxes['total_excluded'],
                 'price_total': taxes['total_included'],
-                'price_subtotal': line.price_unit_cad * line.product_uom_qty,
+                'price_subtotal': line.price_unit * line.product_uom_qty,
             })
             if self.env.context.get('import_file', False) and not self.env.user.user_has_groups('account.group_account_manager'):
                 line.tax_id.invalidate_cache(['invoice_repartition_line_ids'], [line.tax_id.id])
