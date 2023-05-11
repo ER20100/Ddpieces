@@ -14,7 +14,8 @@ class gss_sale_order(models.Model):
         string="Transport CAD"
     )
     package = fields.Monetary(
-        string="Emballage"
+        string="Emballage",
+        default = 4.5
     )
     
     # convert  = fields.Float(
