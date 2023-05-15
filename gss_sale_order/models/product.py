@@ -15,11 +15,11 @@ class gss_sale_product(models.Model):
     
 class gss_sale_productemplate(models.Model):
     _inherit = 'product.template'
-    _rec_name='default_code'
+   
       
-    @api.constrains('default_code')
-    def _check_unique_ref(self):
-       return self._onchange_default_code()
+    # @api.constrains('default_code')
+    # def _check_unique_ref(self):
+    #    return self._onchange_default_code()
        
     
     @api.onchange('default_code')
