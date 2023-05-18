@@ -12,16 +12,7 @@ class gss_sale_crmlead(models.Model):
     def action_new_quotation(self):
         order_lines = self.env['sale.order.line']
         SalerOrder = self.env['sale.order']
-        sale_id = SalerOrder.create({
-            'opportunity_id': self.id,
-            'partner_id': self.partner_id.id,
-            'campaign_id': self.campaign_id.id,
-            'medium_id': self.medium_id.id,
-            'origin': self.name,
-            'source_id': self.source_id.id,
-            'company_id': self.company_id.id or self.env.company.id,
-            'tag_ids': [(6, 0, self.tag_ids.ids)]
-        })
+        lines_vals = []
         for line in self.vendor_ids:
             data = {'name': line.name.id,
                     'product_tmpl_id': line.product_tmpl_id.id,
@@ -50,12 +41,23 @@ class gss_sale_crmlead(models.Model):
                     'product_uom_qty': line.min_qty,
                     'product_id': product.id,
                     'product_uom': line.product_uom.id,
-                    'order_id': sale_id.id,
                     'vendor_id': self.env['product.supplierinfo']._check_vendors(data),
                 }
-              
-                order_lines.create(vals)
-                order_lines._compute_tax_id()
+                lines_vals.append((0,0,vals))
+                # order_lines.create(vals)
+                # order_lines._compute_tax_id()
                 
+        SalerOrder.create({
+        'opportunity_id': self.id,
+        'partner_id': self.partner_id.id,
+        'campaign_id': self.campaign_id.id,
+        'medium_id': self.medium_id.id,
+        'origin': self.name,
+        'source_id': self.source_id.id,
+        'company_id': self.company_id.id or self.env.company.id,
+        'tag_ids': [(6, 0, self.tag_ids.ids)],
+        'order_line':lines_vals
+            
+        })    
         return self.action_view_sale_quotation()
         
