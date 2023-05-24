@@ -156,7 +156,11 @@ class gss_sale_order_line(models.Model):
         string="Profit %",
         default=155.0
     )
-    
+    transport_mode = fields.Selection(
+        [("auto","Routier"),
+         ("sea","Maritime"),
+         ("fero","Ferroviaire"),
+        ("air","Aerien"),], string='Mode de transport')
     # price_unit_cad = fields.Float(
     #     'Prix Vendant Unitaire',
     #     readonly=True,
