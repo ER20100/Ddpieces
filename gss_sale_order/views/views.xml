@@ -165,6 +165,7 @@
                     <field name="price_transport_douane"/>
                     <field name="costline_transport_douane"/>
                     <field name="profit"/>
+                    <field name="transport_mode"/>
                     <field name="price_unit" string="Prix Vendant Unitaire"/>
                     <field
                         name="tax_id"
