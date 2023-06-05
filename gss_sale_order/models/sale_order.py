@@ -21,14 +21,19 @@ class gss_sale_order_line(models.Model):
 
     price_before_trans =  fields.Monetary(
         string="Total avant Transport",
+        compute = "_compute_price_before_transport",
+        store= True
     )
     
     percentage = fields.Float(
         string="%",
+        default=100.0
     )
     
     price_transport_douane = fields.Monetary(
         string="Transports et douanes Canadiens",
+        compute = "_compute_price_transport_douane",
+        store= True
     )
     
     costline_transport_douane = fields.Monetary(
@@ -42,7 +47,11 @@ class gss_sale_order_line(models.Model):
         default=155.0,
         store=True,
     )
-    transport_mode = fields.Char(string="Mode de Transport")
+    transport_mode = fields.Selection([
+        ("road","Transport routier"),
+        ("sea","Transport maritime"),
+        ("train","Transport ferroviaire"),
+        ("fly","Transport aérien")], string='Mode de Transport')
   
     vendor_id = fields.Many2one(
         'product.supplierinfo',
@@ -56,18 +65,20 @@ class gss_sale_order_line(models.Model):
             record.conversion_line =  float(convert) * record.price_usd
     
     
+    @api.depends("product_uom_qty",'price_unit_cad', 'conversion_line')
     def _compute_price_before_transport(self):
         for record in self:
             record.price_before_trans =  record.product_uom_qty * (record.price_unit_cad + record.conversion_line)
     
-    # @api.depends('product_uom_qty','price_unit_cad','conversion_line')
-    # def _compute_percentage(self):
-    #     for record in self:
-    #         alltransp = sum(l.product_uom_qty * (l.price_unit_cad + l.conversion_line) for l in self.search([('order_id','=', record.order_id.id)]))
-    #         if alltransp:
-    #             record.percentage =  (record.price_before_trans * 100.0)/ alltransp
-    #         else:
-    #             record.percentage = 100.0
+    def _compute_percentage(self):
+        for record in self:
+            alltransp = sum(l.product_uom_qty * (l.price_unit_cad + l.conversion_line) for l in self.search([('order_id','=', record.order_id.id)]))
+            if alltransp:
+                record.percentage =  (record.price_before_trans * 100.0)/ alltransp
+            else:
+                record.percentage = 100.0
+            # record.price_transport_douane = (record.price_before_trans / alltransp) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
+            record.price_unit = (((record.price_before_trans * (record.profit/100.0)) + record.price_transport_douane) / record.product_uom_qty) * 1.03 
     
     @api.onchange('percentage')
     def _onchange_percentage(self):
@@ -75,7 +86,7 @@ class gss_sale_order_line(models.Model):
             record.price_unit_cad = (record.percentage/(100.0*record.product_uom_qty)) -  record.conversion_line
     
    
-    
+    @api.depends('percentage','order_id.convert_cad','order_id.price_douane','order_id.percent_port')
     def _compute_price_transport_douane(self):
         for record in self:
             record.price_transport_douane = (record.percentage/100.0) * (record.order_id.convert_cad + record.order_id.price_douane + record.order_id.percent_port)
@@ -107,61 +118,62 @@ class gss_sale_order_line(models.Model):
         for record in self:
             record.costline_transport_douane =   (record.price_transport_douane + record.price_before_trans) / record.product_uom_qty  if record.product_uom_qty>0.0 else 0.0
     
-    
-    
     def _prepare_procurement_values(self, group_id=False):
         self.ensure_one()
         values = super(gss_sale_order_line, self)._prepare_procurement_values(group_id)
         values['vendor_id'] = self.vendor_id.id
+        values['note_dachat'] = self.order_id.note_dachat
         return values
 
-    @api.onchange('product_id')
-    def product_id_change(self):
-        if not self.product_id:
-            return
-        valid_values = self.product_id.product_tmpl_id.valid_product_template_attribute_line_ids.product_template_value_ids
-        # remove the is_custom values that don't belong to this template
-        for pacv in self.product_custom_attribute_value_ids:
-            if pacv.custom_product_template_attribute_value_id not in valid_values:
-                self.product_custom_attribute_value_ids -= pacv
+    # @api.onchange('product_id')
+    # def product_id_change(self):
+    #     if not self.product_id:
+    #         return
+    #     valid_values = self.product_id.product_tmpl_id.valid_product_template_attribute_line_ids.product_template_value_ids
+    #     # remove the is_custom values that don't belong to this template
+    #     for pacv in self.product_custom_attribute_value_ids:
+    #         if pacv.custom_product_template_attribute_value_id not in valid_values:
+    #             self.product_custom_attribute_value_ids -= pacv
 
-        # remove the no_variant attributes that don't belong to this template
-        for ptav in self.product_no_variant_attribute_value_ids:
-            if ptav._origin not in valid_values:
-                self.product_no_variant_attribute_value_ids -= ptav
+    #     # remove the no_variant attributes that don't belong to this template
+    #     for ptav in self.product_no_variant_attribute_value_ids:
+    #         if ptav._origin not in valid_values:
+    #             self.product_no_variant_attribute_value_ids -= ptav
 
-        vals = {}
-        if not self.product_uom or (self.product_id.uom_id.id != self.product_uom.id):
-            vals['product_uom'] = self.product_id.uom_id
-            vals['product_uom_qty'] = self.product_uom_qty or 1.0
+    #     vals = {}
+    #     if not self.product_uom or (self.product_id.uom_id.id != self.product_uom.id):
+    #         vals['product_uom'] = self.product_id.uom_id
+    #         vals['product_uom_qty'] = self.product_uom_qty or 1.0
 
-        product = self.product_id.with_context(
-            lang=get_lang(self.env, self.order_id.partner_id.lang).code,
-            partner=self.order_id.partner_id,
-            quantity=vals.get('product_uom_qty') or self.product_uom_qty,
-            date=self.order_id.date_order,
-            pricelist=self.order_id.pricelist_id.id,
-            uom=self.product_uom.id
-        )
+    #     product = self.product_id.with_context(
+    #         lang=get_lang(self.env, self.order_id.partner_id.lang).code,
+    #         partner=self.order_id.partner_id,
+    #         quantity=vals.get('product_uom_qty') or self.product_uom_qty,
+    #         date=self.order_id.date_order,
+    #         pricelist=self.order_id.pricelist_id.id,
+    #         uom=self.product_uom.id
+    #     )
 
-        vals.update(name=self.get_sale_order_line_multiline_description_sale(product))
+    #     vals.update(name=self.get_sale_order_line_multiline_description_sale(product))
 
-        self._compute_tax_id()
+    #     self._compute_tax_id()
 
-        if self.order_id.pricelist_id and self.order_id.partner_id:
-            vals['price_unit'] = self.price_transport_douane
-        self.update(vals)
+    #     if self.order_id.pricelist_id and self.order_id.partner_id:
+           
+    #         # vals['price_unit'] =  (((self.price_before_trans * (self.profit/100.0)) + self.price_transport_douane) / self.product_uom_qty) * 1.03 or 0.0
+    #         vals['price_unit'] = self.price_before_trans
+    #     self.update(vals)
 
-        if product.sale_line_warn != 'no-message':
-            if product.sale_line_warn == 'block':
-                self.product_id = False
+    #     if product.sale_line_warn != 'no-message':
+    #         if product.sale_line_warn == 'block':
+    #             self.product_id = False
 
-            return {
-                'warning': {
-                    'title': _("Warning for %s", product.name),
-                    'message': product.sale_line_warn_msg,
-                }
-            }
+    #         return {
+    #             'warning': {
+    #                 'title': _("Warning for %s", product.name),
+    #                 'message': product.sale_line_warn_msg,
+    #             }
+    #         }
 
 class gss_sale_order(models.Model):
     _inherit= 'sale.order'
@@ -176,8 +188,7 @@ class gss_sale_order(models.Model):
         string="Emballage",
         default = 4.5
     )
-    
-    
+    note_dachat = fields.Char()
     convert_cad  = fields.Float(
         string="Conversion CAD",
         compute = "_compute_convert_cad",
@@ -188,9 +199,6 @@ class gss_sale_order(models.Model):
     )
     percent_port =  fields.Float(
         string="Frais Port 6%",
-        compute ='_compute_total_cost',
-        inverse = '_inverse_percent_port',
-        store=True
     )
     
     cart_credit =  fields.Integer(
@@ -213,12 +221,13 @@ class gss_sale_order(models.Model):
     
     price_profit_total =  fields.Monetary(
         string="Profit Total",
-        compute = "_compute_price_total",
         store=True,
+        compute = "_compute_price_total",
     )
     
     total_transport =  fields.Monetary(
         string="transport",
+        
     )
      
     @api.depends('transport_usd','transport_cad','package')
@@ -229,25 +238,23 @@ class gss_sale_order(models.Model):
             record.convert_cad =  ((float(convert) * record.transport_usd) + record.transport_cad + record.package) * 1.2
     
     def _inverse_percent_port(self):
-        pass
+        for order in self:
+            tamount_US = tamount_transp  = 0.0
+            for line in order.order_line:
+               
+                tamount_US += line.price_usd * line.product_uom_qty 
+                tamount_transp += line.price_before_trans   
+            order.update({
+                'percent_port':(tamount_transp * 6.0)/100.0 if tamount_US > 0.0 else 0.0 ,
+            })
     
     @api.onchange('percent_port')
     def onchange_percent_port(self):
         for rec in self.order_line:
             rec.price_unit_cad = (self.percent_port / 0.06)/rec.product_uom_qty - rec.conversion_line
-
-  
-    def get_line_percentage(self):
-        for order in self:
-            transport =  sum(line.price_before_trans for line in order.order_line)
-            if transport : 
-                for line in order.order_line:
-                   line.percentage = line.price_before_trans / transport  
-            else:
-                line.percentage = 100.0
-            order.total_transport = transport
-                    
-    @api.depends('order_line.price_before_trans')
+      
+                
+    @api.depends('order_line.price_before_trans','order_line.percentage')
     def _compute_total_cost(self):
         for order in self:
             amount_US = amount_transp = cost_total = cost_total1 = 0.0
@@ -255,13 +262,12 @@ class gss_sale_order(models.Model):
                
                 amount_US += line.price_usd * line.product_uom_qty 
                 amount_transp += line.price_before_trans
-                cost_total1 += (line.percentage/100.0) * (line.order_id.convert_cad + line.order_id.price_douane + (amount_transp* 6.0)/100.0)
+                cost_total1 += line.price_transport_douane
                 cost_total += line.price_before_trans 
                 
             order.update({
-               
+                'total_transport':amount_transp,
                 'cost_total':cost_total + cost_total1,
-                'percent_port':(amount_transp* 6.0)/100.0 if amount_US > 0.0 else 0.0 ,
             })
            
             
@@ -269,7 +275,7 @@ class gss_sale_order(models.Model):
     @api.depends('cost_total','amount_untaxed')
     def _compute_price_total(self):  
         for rec in self:
-            rec.price_profit_total = rec.amount_untaxed - rec.cost_total
+            rec.price_profit_total = (rec.amount_untaxed/1.03) - rec.cost_total
             
             
     @api.depends('order_line.tax_id', 'order_line.price_unit', 'amount_total', 'amount_untaxed')
@@ -287,8 +293,14 @@ class gss_sale_order(models.Model):
 
     @api.model
     def create(self, values):
-        result = super(gss_sale_order,self).create(values)
-        result.get_line_percentage()
+        result = super().create(values)
+        result.order_line._compute_percentage()
+        result._inverse_percent_port()
         return result
+  
+    def write(self, values):
+        res = super().write(values)
+        self.order_line._compute_percentage()
+        return res
    
   
