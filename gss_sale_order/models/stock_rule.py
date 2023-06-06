@@ -13,8 +13,8 @@ class StockRuleOrderOps(models.Model):
         _fields += ['note_dachat']
         return _fields
     
-    # def _prepare_purchase_order(self, company_id, origins, values):
-    #     print(">>>>>>>>>>>>>>>>>")
-    #     print(values)
-    #     res = super(StockRuleOrderOps, self)._prepare_purchase_order(company_id, origins, values)
-    #     return res
+    def _prepare_purchase_order(self, company_id, origins, values):
+        res = super(StockRuleOrderOps, self)._prepare_purchase_order(company_id, origins, values)
+        values = values[0]
+        res['note_dachat'] = values['note_dachat']
+        return res
