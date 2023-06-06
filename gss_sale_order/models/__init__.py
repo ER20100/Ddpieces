@@ -7,3 +7,4 @@ from . import stock_move
 from . import stock_rule
 from . import res_config_setting
 from . import product
+from . import purchase

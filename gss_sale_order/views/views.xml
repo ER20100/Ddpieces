@@ -6,6 +6,9 @@
       <field name="model">sale.order</field>
       <field name="inherit_id" ref="sale.view_order_form"/>
       <field name="arch" type="xml">
+        <xpath expr="//field[@name='payment_term_id']" position="after">
+            <field name="note_dachat" string="note d'achat"/>
+        </xpath>
         <xpath expr="//group[@name='sale_header']" position="after">
              <group name="transport_header">
                   <group name="transport_details" string="Transport">
@@ -49,10 +52,7 @@
                     <field name="product_updatable" invisible="1"/>
                     <field
                         name="product_id"
-                        attrs="{
-                            'readonly': [('product_updatable', '=', False)],
-                            'required': [('display_type', '=', False)],
-                        }"
+                        readonly="1"
                         force_save="1"
                         context="{
                             'partner_id': parent.partner_id,
@@ -69,10 +69,7 @@
                     <field name="product_template_id"
                       string="Product"
                       invisible="1"
-                      attrs="{
-                          'readonly': [('product_updatable', '=', False)],
-                          'required': [('display_type', '=', False)],
-                      }"
+                      readonly="1"
                       context="{
                           'partner_id': parent.partner_id,
                           'quantity': product_uom_qty,
@@ -165,6 +162,7 @@
                     <field name="price_transport_douane"/>
                     <field name="costline_transport_douane"/>
                     <field name="profit"/>
+                    <field name="transport_mode"/>
                     <field name="price_unit" string="Prix Vendant Unitaire"/>
                     <field
                         name="tax_id"
