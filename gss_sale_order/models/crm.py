@@ -58,6 +58,7 @@ class gss_sale_crmlead(models.Model):
         'tag_ids': [(6, 0, self.tag_ids.ids)],
         'order_line':lines_vals
             
-        })    
+        })
+        pid.order_percentage(lines_vals)    
         return self.action_view_sale_quotation()
         
