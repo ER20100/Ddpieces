@@ -47,7 +47,7 @@ class gss_sale_crmlead(models.Model):
                 # order_lines.create(vals)
                 # order_lines._compute_tax_id()
                 
-        SalerOrder.create({
+        pid = SalerOrder.create({
         'opportunity_id': self.id,
         'partner_id': self.partner_id.id,
         'campaign_id': self.campaign_id.id,
@@ -58,6 +58,7 @@ class gss_sale_crmlead(models.Model):
         'tag_ids': [(6, 0, self.tag_ids.ids)],
         'order_line':lines_vals
             
-        })    
+        })
+        pid.order_percentage(lines_vals)    
         return self.action_view_sale_quotation()
         
