@@ -104,7 +104,7 @@ class gss_sale_order_line(models.Model):
                 tpercentage = (tprice_before_trans / record.order_id.total_transport) * 100.0 if record.order_id.total_transport  else record.percentage
             tprice_transport_douane = (tpercentage/100.0) * (convertcad + record.order_id.price_douane + record.order_id.percent_port)
             tcostline_transport_douane =   (tprice_transport_douane + tprice_before_trans) / record.product_uom_qty  if record.product_uom_qty>0.0 else 0.0
-            tprice = ((tprice_before_trans * (record.profit/100.0)) + tprice_transport_douane) / record.product_uom_qty
+            tprice = ((tprice_before_trans * (record.profit/100.0)) + tprice_transport_douane) / record.product_uom_qty  if record.product_uom_qty>0.0 else 0.0
             record.update({
                 'conversion_line':conversionline,
                 'price_before_trans':tprice_before_trans,
