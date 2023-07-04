@@ -52,8 +52,6 @@
                     <field name="product_updatable" invisible="1"/>
                     <field
                         name="product_id"
-                        readonly="1"
-                        force_save="1"
                         context="{
                             'partner_id': parent.partner_id,
                             'quantity': product_uom_qty,
@@ -69,7 +67,7 @@
                     <field name="product_template_id"
                       string="Product"
                       invisible="1"
-                      readonly="1"
+                    
                       context="{
                           'partner_id': parent.partner_id,
                           'quantity': product_uom_qty,
