@@ -28,7 +28,7 @@
         'views/views.xml',
         'views/templates.xml',
         'views/crm_lead_views.xml',
-        'views/product_views.xml',
+        # 'views/product_views.xml',
         'views/purchase_view.xml',
     ],
     # only loaded in demonstration mode
