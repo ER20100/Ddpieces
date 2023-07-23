@@ -11,7 +11,7 @@ class gss_productsupllierinfo(models.Model):
     
     name = fields.Many2one(
         'res.partner', 'Fournisseur',
-        ondelete='cascade', required=True,
+        ondelete='cascade',
         help="Vendor of this product", check_company=True,
         default=_default_get_vendor)
     product_uom = fields.Many2one(
@@ -23,29 +23,29 @@ class gss_productsupllierinfo(models.Model):
         string='Opportunite',
         )
     min_qty = fields.Float(
-        'Quantite', default=0.0, required=True, digits="Product Unit Of Measure",
+        'Quantite', default=0.0,  digits="Product Unit Of Measure",
         help="The quantity to purchase from this vendor to benefit from the price, expressed in the vendor Product Unit of Measure if not any, in the default unit of measure of the product otherwise.")
     price = fields.Float(
         
         'PU CAD', default=0.0, digits='Product Price',
-        required=True, help="The price to purchase a product")
+         help="The price to purchase a product")
     price_usd = fields.Float(
         'PU USD', default=0.0, digits='Product Price USD',
-        required=True, help="The price to purchase a product")
+         help="The price to purchase a product")
     company_id = fields.Many2one(
         'res.company', 'Entreprise',
         default=lambda self: self.env.company.id, index=1)
     product_tmpl_id = fields.Many2one(
         'product.template', 'Produit', check_company=True,
         index=True, ondelete='cascade')
-    vendor_select = fields.Boolean(string="selectionner le fournisseur a commander")
+    vendor_select = fields.Boolean(string="selectionner le fournisseur a commander",default=True)
     product_id = fields.Many2one(
         'product.product', 'Article', check_company=True,
         domain="[('sale_ok', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id)]",
         help="If not set, the vendor price will apply to all variants of this product.")
     
     delay = fields.Integer(
-        'Delai de livraison', default=1, required=True,
+        'Delai de livraison', default=1,
         help="Lead time in days between the confirmation of the purchase order and the receipt of the products in your warehouse. Used by the scheduler for automatic computation of the purchase order planning.")
     reference = fields.Char(string='Reference interne', related='product_tmpl_id.default_code')
     virtual_available  = fields.Float( string='Quantite Disponible',compute="compute_product_id_quantity_available",store=True)

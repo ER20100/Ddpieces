@@ -20,17 +20,28 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['sale_crm','purchase_stock'],
+    'depends': ['sale_crm','purchase_stock','account'],
 
     # always loaded
     'data': [
         'security/ir.model.access.csv',
+        # 'templates/report.xml',
         'views/views.xml',
         'views/templates.xml',
         'views/crm_lead_views.xml',
         # 'views/product_views.xml',
         'views/purchase_view.xml',
+        'templates/gss_header_footer.xml',
+        'templates/invoices_template.xml',
+        'templates/sale_template.xml',
+       
+       
     ],
+    "assets": {
+        "web.assets_backend": [
+            "/gss_sale_order/templates/style.scss",
+        ],
+    },
     # only loaded in demonstration mode
     'demo': [
         'demo/demo.xml',
