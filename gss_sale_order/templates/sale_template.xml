@@ -5,7 +5,7 @@
         <xpath expr="//t[1]" position="replace">
          <t t-call="web.external_layout">
                 <t t-set="doc" t-value="doc.with_context(lang=doc.partner_id.lang)" />
-                <div class="page">
+                <div class="page" style="font-family: Calibri, sans-serif;">
                     <div class="row">
                         <div class="col-6">
                            <h4>
