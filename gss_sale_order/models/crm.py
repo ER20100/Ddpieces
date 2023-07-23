@@ -61,4 +61,20 @@ class gss_sale_crmlead(models.Model):
         })
         pid.order_percentage(lines_vals)    
         return self.action_view_sale_quotation()
-        
+    
+    
+    @api.model
+    def default_get(self, fields):
+        res = super(gss_sale_crmlead, self).default_get(fields)
+        lt=[(5,0,0)]
+        i = 0
+        while i < 6:
+            line =(0,0,{
+                'name':self.env.ref("gss_sale_order.avenir_vendor").id
+            })
+            lt.append(line)
+            i += 1
+        res.update({  
+        'vendor_ids': lt,  
+        })  
+        return res

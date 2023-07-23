@@ -64,37 +64,48 @@
                         </div>
                     </div>
                     <br/>
-                    <div id="informations" class="row mt32 mb32" style="background-color: #DDE6E8;">
-                        <div class="col-auto col-3 mw-100 mb-2" name="invoice_date">
-                            <strong>P.O:</strong>
-                            <p class="m-0" t-field="o.invoice_date"/>
-                        </div>
-                        <div class="col-auto col-3 mw-100 mb-2"  name="due_date">
-                            <strong>Date:</strong>
-                            <p class="m-0" t-field="o.invoice_date_due"/>
-                        </div>
-                        <div class="col-auto col-3 mw-100 mb-2"  name="origin">
-                            <strong>Expedier:</strong>
-                            <!-- <p class="m-0" t-field="o.invoice_origin"/> -->
-                        </div>
-                        <div class="col-auto col-3 mw-100 mb-2" name="customer_code">
-                            <strong>WayBill:</strong>
-                            <!-- <p class="m-0" t-field="o.partner_id.ref"/> -->
-                        </div>
-                        <div class="col-auto col-3 mw-100 mb-2" name="term">
-                            <strong>Terme:</strong>
-                            <p class="m-0" t-field="o.invoice_payment_term_id"/>
-                        </div>
-                        <div class="col-auto col-3 mw-100 mb-2" name="sale">
-                            <strong>Vendeur:</strong>
-                            <p class="m-0" t-field="o.invoice_user_id"/>
-                        </div>
-                    </div>
+                    
+                    <table class="table table-sm o_main_table" name="colheader" style="background-color: #E6E7E8;">
+                        <thead >
+                            <tr>
+                                <th name="th_piece"><span>P.O:</span></th>
+                                <th name="th_date"><span>Date:</span></th>
+                                <th name="th_expedier"><span>Expedier:</span></th>
+                                <th name="th_waybill"><span>WayBill:</span></th>
+                                <th name="th_term">
+                                    <span >Terme:</span>
+                                </th>
+                                <th name="th_back">
+                                    <span>Vendeur:</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="header_tbody">
+                            <tr>
+                                <td>
+                                    <span t-field="o.invoice_date"/>
+                                </td>
+                                <td ><span t-field="o.invoice_date_due" /></td>
+                                <td>
+                                    <!-- <span t-field="line.quantity"/> -->
+                                </td>
+                                <td>
+                                    <!-- <span t-field="line.price_unit"/> -->
+                                </td>
+                                <td>
+                                    <span  t-field="o.invoice_date_due" />
+                                </td>
+                                <td>
+                                    <span  t-field="o.invoice_user_id" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                      <br/>
                     <t t-set="display_discount" t-value="any(l.discount for l in o.invoice_line_ids)"/>
                     <t t-set="note" t-value=""/>
                     <table class="table table-sm o_main_table" name="invoice_line_table" >
-                        <thead style="background-color: #DDE6E8;">
+                        <thead style="background-color: #E6E7E8;">
                             <tr>
                                 <th name="th_piece"  style="width:15%;"><span>N° PIECE</span></th>
                                 <th name="th_description" class="text-left" style="width:40%;"><span>DESCRIPTION</span></th>
@@ -154,7 +165,7 @@
                                 <span t-field="o.narration"/>
                             </div>
                             <div  class="col-4">
-                                <table class="table table-sm" style="page-break-inside: avoid;background-color: #DDE6E8;">
+                                <table class="table table-sm" style="page-break-inside: avoid;background-color: #E6E7E8;">
 
                                     <!--Tax totals-->
                                     <t t-set="tax_totals" t-value="json.loads(o.tax_totals_json)"/>

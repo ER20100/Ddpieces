@@ -37,11 +37,11 @@
        
        
     ],
-    # "assets": {
-    #     "web.assets_backend": [
-    #         "/gss_sale_order/templates/style.scss",
-    #     ],
-    # },
+    "assets": {
+        "web.assets_backend": [
+            "/gss_sale_order/templates/style.scss",
+        ],
+    },
     # only loaded in demonstration mode
     'demo': [
         'demo/demo.xml',

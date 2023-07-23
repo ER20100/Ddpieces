@@ -66,7 +66,7 @@
                         </div>
                     </div>
                     <br/>
-                    <div id="informations" class="row mt32 mb32" style="background-color: #DDE6E8;">
+                    <div id="informations" class="row mt32 mb32" style="background-color: #E6E7E8;">
                         <div class="col-auto col-3 mw-100 mb-2" name="invoice_date">
                             <strong>P.O:</strong>
                             <!-- <p class="m-0" t-field="o.invoice_date"/> -->
@@ -96,7 +96,7 @@
                     <t t-set="display_discount" t-value="any(l.discount for l in doc.order_line)"/>
                     <t t-set="note" t-value=""/>
                     <table class="table table-sm o_main_table">
-                        <thead style="background-color: #DDE6E8;">
+                        <thead style="background-color: #E6E7E8;">
                             <tr>
                                 <th name="th_piece"  style="width:15%;"><span>N° PIECE</span></th>
                                 <th name="th_description" class="text-left" style="width:40%;"><span>DESCRIPTION</span></th>
@@ -156,7 +156,7 @@
                                 <span t-field="doc.note"/>
                             </div>
                             <div  class="col-4">
-                                <table class="table table-sm" style="page-break-inside: avoid;background-color: #DDE6E8;">
+                                <table class="table table-sm" style="page-break-inside: avoid;background-color:#E6E7E8;">
                                     <!--Tax totals-->
                                     <t t-set="tax_totals" t-value="json.loads(doc.tax_totals_json)"/>
                                     <t t-call="account.document_tax_totals"/>

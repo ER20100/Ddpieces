@@ -1,29 +1,7 @@
-.o_ddpiece_footer {
-    margin-top: 200px;
-    .list-inline-item {
-        white-space: nowrap;
-    }
+.table-sm th, .table-sm td {
+    padding: 0.3rem;
+    border: 1px solid;
 }
-
-.o_report_layout_ddpiece {
-    h2 {
-        color: $o-default-report-primary-color;
-    }
-    
-    #informations strong {
-        color: $o-default-report-secondary-color;
-    }
-    
-    #total strong{
-        color: $o-default-report-primary-color;
-    }
-    table {
-        thead {
-            color: $o-default-report-secondary-color;
-        }
-    }
-
-    div[name=comment] p{
-        margin-bottom: 0;
-    }
+.o_list_view .o_list_table .o_data_row.o_selected_row > .o_data_cell:not(.o_readonly_modifier):not(:last-child) {
+    border: 1px solid #091124;
 }
