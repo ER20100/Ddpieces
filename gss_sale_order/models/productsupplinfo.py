@@ -38,7 +38,7 @@ class gss_productsupllierinfo(models.Model):
     product_tmpl_id = fields.Many2one(
         'product.template', 'Produit', check_company=True,
         index=True, ondelete='cascade')
-    vendor_select = fields.Boolean(string="selectionner le fournisseur a commander")
+    vendor_select = fields.Boolean(string="selectionner le fournisseur a commander",default=True)
     product_id = fields.Many2one(
         'product.product', 'Article', check_company=True,
         domain="[('sale_ok', '=', True), '|', ('company_id', '=', False), ('company_id', '=', company_id)]",
